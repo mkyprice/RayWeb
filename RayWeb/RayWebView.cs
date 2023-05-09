@@ -10,19 +10,40 @@ namespace RayWeb
 	{
 		public RaycefBrowser Browser { get; private set; }
 
+		public int X, Y;
+		private int _width;
+		public int Width
+		{
+			get { return _width; }
+			set
+			{
+				_width = value;
+				Browser?.Resize(Width, Height);
+			}
+		}
+		public int _height;
+		public int Height
+		{
+			get { return _height; }
+			set
+			{
+				_height = value;
+				Browser?.Resize(Width, Height);
+			}
+		}
+
+		public RayWebView(int width, int height)
+		{
+			Width = width;
+			Height = height;
+		}
+
 		public void Render()
 		{
 			if (Browser?.IsBrowserInitialized == false) return;
 
-			if (Raylib.IsWindowResized())
-			{
-				Browser.Resize(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
-			}
-
-
-
-			int x = Raylib.GetMouseX();
-			int y = Raylib.GetMouseY();
+			int x = Raylib.GetMouseX() - X;
+			int y = Raylib.GetMouseY() - Y;
 			Browser.SetMousePosition(x, y);
 
 			if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT))
@@ -64,7 +85,7 @@ namespace RayWeb
 			}
 			while (key_code != 0);
 
-			Browser.Render();
+			Browser.Render(X, Y);
 		}
 
 		public async Task<bool> InitializeAsync(string localfiles)
@@ -123,7 +144,7 @@ namespace RayWeb
 				await Task.Delay(1);
 				Console.WriteLine("Waiting...");
 			}
-			Browser.Resize(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+			Browser.Resize(Width, Height);
 
 			return Browser.IsBrowserInitialized;
 		}

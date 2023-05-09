@@ -40,11 +40,11 @@ namespace RayWeb
 			Cef.Shutdown();
 		}
 
-		public void Render()
+		public void Render(int x, int y)
 		{
 			if (TryGetRenderTexture(out Texture2D texture))
 			{
-				Raylib.DrawTexture(texture, 0, 0, Raylib_cs.Color.WHITE);
+				Raylib.DrawTexture(texture, x, y, Raylib_cs.Color.WHITE);
 			}
 		}
 
@@ -112,23 +112,11 @@ namespace RayWeb
 			}
 		}
 
-		public void LoadHtmlFile(string file)
-		{
-			FileSystemWatcher watcher = new FileSystemWatcher(Path.GetDirectoryName(file));
-			watcher.Filter = Path.GetFileName(file);
-			watcher.Changed += FileChanged;
-			watcher.EnableRaisingEvents = true;
-			this.LoadHtml(File.ReadAllText(file));
-		}
-
-		private void FileChanged(object sender, FileSystemEventArgs e)
-		{
-			Console.WriteLine(e.FullPath);
-			using (var fs = File.Open(e.FullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-			using (var sr = new StreamReader(fs, Encoding.Default))
-				this.LoadHtml(sr.ReadToEnd());
-		}
-
+		/// <summary>
+		/// Callback for new screen image from chromium
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
 		private void OnCefPaint(object? sender, OnPaintEventArgs e)
 		{
 			if (e.DirtyRect.Width == 0 || e.DirtyRect.Height == 0) return;
@@ -136,11 +124,16 @@ namespace RayWeb
 			Bitmap bmp = new Bitmap(e.Width, e.Height, 4 * e.Width, System.Drawing.Imaging.PixelFormat.Format32bppArgb, e.BufferHandle);
 			if (bmp != null)
 			{
-				GetTexture(bmp, e.DirtyRect);
+				ConvertTexture(bmp, e.DirtyRect);
 			}
 		}
 
-		private void GetTexture(Bitmap bmp, Rect rect)
+		/// <summary>
+		/// Converts a Bitmap into our Raylib render Texture
+		/// </summary>
+		/// <param name="bmp"></param>
+		/// <param name="rect"></param>
+		private void ConvertTexture(Bitmap bmp, Rect rect)
 		{
 			Stopwatch sw = new Stopwatch();
 			sw.Start();
@@ -172,9 +165,42 @@ namespace RayWeb
 					}
 
 					sw.Stop();
-					Console.WriteLine("Total time: {0}", sw.ElapsedMilliseconds);
+					Console.WriteLine("Total image load time: {0}", sw.ElapsedMilliseconds);
 				}
 			}
+		}
+
+		/// <summary>
+		/// Load a local html file
+		/// Sets up a file watcher that will reload it if there are any changes
+		/// </summary>
+		/// <param name="file"></param>
+		public void LoadHtmlFile(string file)
+		{
+			string? name = Path.GetDirectoryName(file);
+			if (string.IsNullOrEmpty(name))
+			{
+				Console.WriteLine("Failed to find file {0}", file);
+				return;
+			}
+			FileSystemWatcher watcher = new FileSystemWatcher(file);
+			watcher.Filter = Path.GetFileName(file);
+			watcher.Changed += FileChanged;
+			watcher.EnableRaisingEvents = true;
+			this.LoadHtml(File.ReadAllText(file));
+		}
+
+		/// <summary>
+		/// Loads new changes to watched file
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void FileChanged(object sender, FileSystemEventArgs e)
+		{
+			Console.WriteLine(e.FullPath);
+			using (var fs = File.Open(e.FullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+			using (var sr = new StreamReader(fs, Encoding.Default))
+				this.LoadHtml(sr.ReadToEnd());
 		}
 	}
 }
