@@ -3,11 +3,13 @@ using CefSharp.Handler;
 using CefSharp.OffScreen;
 using CefSharp.SchemeHandler;
 using Raylib_cs;
+using System.Diagnostics;
 
 namespace RayWeb
 {
 	public class RayWebView : IDisposable
 	{
+		public static int MAX_INITIALIZE_WAIT_MS = 5000;
 		public RaycefBrowser Browser { get; private set; }
 
 		public int X, Y;
@@ -88,7 +90,7 @@ namespace RayWeb
 			Browser.Render(X, Y);
 		}
 
-		public async Task<bool> InitializeAsync(string localfiles)
+		public async Task<bool> InitializeAsync(string localfiles = null)
 		{
 			CefSettings settings = new CefSettings();
 			settings.CachePath = Directory.GetCurrentDirectory() + "/cache";
@@ -101,7 +103,7 @@ namespace RayWeb
 
 			settings.MultiThreadedMessageLoop = true;
 
-			settings.RemoteDebuggingPort = 6969;
+			settings.RemoteDebuggingPort = 9001;
 
 #if DEBUG
 			// Allows debugging
@@ -109,23 +111,29 @@ namespace RayWeb
 			settings.CefCommandLineArgs.Add("disable-features", "BlockInsecurePrivateNetworkRequests");
 #endif
 
-			// Loads all custom files
-			settings.RegisterScheme(new CefCustomScheme()
+			string default_address = null;
+
+			// Loads all custom files. Only necessary if loading websites off your local drive
+			if (string.IsNullOrEmpty(localfiles) == false)
 			{
-				SchemeName = "LocalFolder",
-				DomainName = "cefSharp",
-				SchemeHandlerFactory = new FolderSchemeHandlerFactory(
-					rootFolder: localfiles,
-					hostName: "cefSharp",
-					defaultPage: "index.html"
-					)
-			});
+				settings.RegisterScheme(new CefCustomScheme()
+				{
+					SchemeName = "LocalFolder",
+					DomainName = "cefSharp",
+					SchemeHandlerFactory = new FolderSchemeHandlerFactory(
+						rootFolder: localfiles,
+						hostName: "cefSharp",
+						defaultPage: "index.html"
+						)
+				});
+				default_address = "localFolder://cefSharp/";
+			}
 
-
+			// Initialize Cef with our custom settings
 			Cef.Initialize(settings);
 
-			// Set browser to local file directory
-			Browser = new RaycefBrowser("localFolder://cefSharp/");
+			// Set browser to local file directory or null for external sites
+			Browser = new RaycefBrowser(default_address);
 
 			unsafe
 			{
@@ -139,10 +147,11 @@ namespace RayWeb
 				});
 			}
 
-			while (Browser.IsBrowserInitialized == false)
+			Stopwatch sw = Stopwatch.StartNew();
+			while (Browser.IsBrowserInitialized == false && sw.ElapsedMilliseconds < MAX_INITIALIZE_WAIT_MS)
 			{
 				await Task.Delay(1);
-				Console.WriteLine("Waiting...");
+				Console.WriteLine("Waiting for Cef initialization... {0}s", sw.Elapsed.TotalSeconds);
 			}
 			Browser.Resize(Width, Height);
 
