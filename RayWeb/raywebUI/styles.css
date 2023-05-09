@@ -1,0 +1,109 @@
+﻿/* Fonts */
+@import url('https://fonts.googleapis.com/css?family=Roboto+Mono:400,500&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Titillium+Web:400,600&display=swap');
+
+/* Colors */
+:root {
+    --primary-color: #2ecc71;
+    --secondary-color: #e74c3c;
+    --text-color: #f5f5f5;
+    --background-color: #222;
+}
+
+/* General Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto Mono', monospace;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Titillium Web', sans-serif;
+    margin-bottom: 1rem;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+/* Buttons */
+.button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+    transition: background-color 0.2s ease;
+}
+
+    .button:hover {
+        background-color: var(--secondary-color);
+    }
+
+/* Forms */
+input[type="text"], input[type="email"], input[type="password"], textarea {
+    display: block;
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+input[type="submit"] {
+    display: block;
+    width: 100%;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 0.25rem;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+    transition: background-color 0.2s ease;
+}
+
+    input[type="submit"]:hover {
+        background-color: var(--secondary-color);
+    }
+
+/* Containers */
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Grid */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: -1rem;
+}
+
+.col {
+    flex: 1;
+    padding: 1rem;
+}
+
+@media (max-width: 768px) {
+    .col {
+        flex-basis: 100%;
+    }
+}
