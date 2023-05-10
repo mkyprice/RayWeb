@@ -1,5 +1,4 @@
 ﻿using CefSharp;
-using CefSharp.Handler;
 using CefSharp.OffScreen;
 using CefSharp.SchemeHandler;
 using Raylib_cs;
