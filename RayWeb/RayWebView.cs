@@ -9,7 +9,7 @@ namespace RayWeb
 	public class RayWebView : IDisposable
 	{
 		public static int MAX_INITIALIZE_WAIT_MS = 5000;
-		public RaycefBrowser Browser { get; private set; }
+		public RayCefBrowser Browser { get; private set; }
 
 		public int X, Y;
 		private int _width;
@@ -39,32 +39,45 @@ namespace RayWeb
 			Height = height;
 		}
 
+		/// <summary>
+		/// Render to screen
+		/// </summary>
 		public void Render()
 		{
-			if (Browser?.IsBrowserInitialized == false) return;
+			if (Browser == null || Browser.IsBrowserInitialized == false) return;
 
+			HandleInput();
+
+			Browser.Render(X, Y);
+		}
+
+		/// <summary>
+		/// Pass input to the browser
+		/// </summary>
+		private void HandleInput()
+		{
 			int x = Raylib.GetMouseX() - X;
 			int y = Raylib.GetMouseY() - Y;
 			Browser.SetMousePosition(x, y);
 
 			if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT))
 			{
-				Browser.HandleMouseButtonDown(ConvertMouseButton(MouseButton.MOUSE_BUTTON_LEFT), x, y);
+				Browser.HandleMouseButtonDown(ConvertMouseButton(MouseButton.MOUSE_BUTTON_LEFT));
 			}
 
 			if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_RIGHT))
 			{
-				Browser.HandleMouseButtonDown(ConvertMouseButton(MouseButton.MOUSE_BUTTON_RIGHT), x, y);
+				Browser.HandleMouseButtonDown(ConvertMouseButton(MouseButton.MOUSE_BUTTON_RIGHT));
 			}
 
 			if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT))
 			{
-				Browser.HandleMouseButtonUp(ConvertMouseButton(MouseButton.MOUSE_BUTTON_LEFT), x, y);
+				Browser.HandleMouseButtonUp(ConvertMouseButton(MouseButton.MOUSE_BUTTON_LEFT));
 			}
 
 			if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_RIGHT))
 			{
-				Browser.HandleMouseButtonUp(ConvertMouseButton(MouseButton.MOUSE_BUTTON_RIGHT), x, y);
+				Browser.HandleMouseButtonUp(ConvertMouseButton(MouseButton.MOUSE_BUTTON_RIGHT));
 			}
 
 			int key_code;
@@ -75,33 +88,52 @@ namespace RayWeb
 				{
 					KeyEvent key = new KeyEvent()
 					{
-						Type = KeyEventType.RawKeyDown,
-						NativeKeyCode = key_code,
-						Modifiers = CefEventFlags.None,
+						Type = KeyEventType.KeyDown,
+						//NativeKeyCode = key_code,
+						Modifiers = GetKeyEventFlags(),
 						WindowsKeyCode = key_code,
+						FocusOnEditableField = true,
+						IsSystemKey = false,
 					};
-
 					Browser.HandleKeyEvent(key);
 				}
 			}
 			while (key_code != 0);
-
-			Browser.Render(X, Y);
 		}
 
-		public async Task<bool> InitializeAsync(string localfiles = null)
+		/// <summary>
+		/// Get modifiers happening on keys
+		/// </summary>
+		/// <returns></returns>
+		private CefEventFlags GetKeyEventFlags()
+		{
+			CefEventFlags flags = CefEventFlags.None;
+			if (Raylib.IsKeyDown(KeyboardKey.KEY_LEFT_SHIFT) ||
+			    Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT_SHIFT))
+			{
+				flags = CefEventFlags.ShiftDown;
+			}
+			if (Raylib.IsKeyDown(KeyboardKey.KEY_LEFT_ALT) ||
+			    Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT_ALT))
+			{
+				flags |= CefEventFlags.AltDown;
+			}
+			return flags;
+		}
+
+		/// <summary>
+		/// Initialize the browser
+		/// </summary>
+		/// <param name="startingPage">Path to local web files or a webpage</param>
+		/// <returns></returns>
+		public async Task<bool> InitializeAsync(string startingPage)
 		{
 			CefSettings settings = new CefSettings();
 			settings.CachePath = Directory.GetCurrentDirectory() + "/cache";
-
 			settings.EnableAudio();
-
 			settings.SetOffScreenRenderingBestPerformanceArgs();
-
 			settings.WindowlessRenderingEnabled = true;
-
 			settings.MultiThreadedMessageLoop = true;
-
 			settings.RemoteDebuggingPort = 9001;
 
 #if DEBUG
@@ -110,17 +142,17 @@ namespace RayWeb
 			settings.CefCommandLineArgs.Add("disable-features", "BlockInsecurePrivateNetworkRequests");
 #endif
 
-			string default_address = null;
+			string default_address = startingPage;
 
 			// Loads all custom files. Only necessary if loading websites off your local drive
-			if (string.IsNullOrEmpty(localfiles) == false)
+			if (string.IsNullOrEmpty(startingPage) == false && Directory.Exists(startingPage))
 			{
 				settings.RegisterScheme(new CefCustomScheme()
 				{
 					SchemeName = "LocalFolder",
 					DomainName = "cefSharp",
 					SchemeHandlerFactory = new FolderSchemeHandlerFactory(
-						rootFolder: localfiles,
+						rootFolder: startingPage,
 						hostName: "cefSharp",
 						defaultPage: "index.html"
 						)
@@ -132,7 +164,7 @@ namespace RayWeb
 			Cef.Initialize(settings);
 
 			// Set browser to local file directory or null for external sites
-			Browser = new RaycefBrowser(default_address);
+			Browser = new RayCefBrowser(default_address);
 
 			unsafe
 			{
@@ -162,6 +194,11 @@ namespace RayWeb
 			Browser.Dispose();
 		}
 
+		/// <summary>
+		/// Convert from Raylib enum to Cef enum
+		/// </summary>
+		/// <param name="button"></param>
+		/// <returns></returns>
 		private MouseButtonType ConvertMouseButton(MouseButton button)
 		{
 			switch (button)

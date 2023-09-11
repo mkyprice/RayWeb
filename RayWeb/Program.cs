@@ -8,8 +8,8 @@ namespace RayWeb
 	{
 		static void Main(string[] args)
 		{
-			const int screen_width = 1280;
-			const int screen_height = 720;
+			int screen_width = 1280;
+			int screen_height = 720;
 
 			// Initialize our Raylib Window
 			Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
@@ -20,8 +20,8 @@ namespace RayWeb
 			// Initialize our webview to half the size of the screen
 			int web_view_width = (int)(screen_width / 1.5f);
 			int web_view_height = (int)(screen_height / 1.5f);
-			var webview = new RayWebView(web_view_width, web_view_height);
-			if (webview.InitializeAsync("raywebUI").Result == false)
+			RayWebView webview = new RayWebView(web_view_width, web_view_height);
+			if (webview.InitializeAsync("www.google.com").Result == false)
 			{
 				Console.WriteLine("Failed to initialize raylib webview");
 				return;
@@ -46,9 +46,12 @@ namespace RayWeb
 				// Moving the webview
 				int horizontal = Raylib.IsKeyDown(KeyboardKey.KEY_LEFT) ? -1 : Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT) ? 1 : 0;
 				int vertical = Raylib.IsKeyDown(KeyboardKey.KEY_UP) ? -1 : Raylib.IsKeyDown(KeyboardKey.KEY_DOWN) ? 1 : 0;
-
 				if (horizontal != 0) webview.X += horizontal;
 				if (vertical != 0) webview.Y += vertical;
+				
+				// Update shader
+				time += Raylib.GetFrameTime();
+				Raylib.SetShaderValue(background, time_loc, time, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
 
 				// Drawing
 				Raylib.BeginDrawing();
@@ -56,8 +59,6 @@ namespace RayWeb
 
 				// Draw our background
 				Raylib.BeginShaderMode(background);
-				time += Raylib.GetFrameTime();
-				Raylib.SetShaderValue(background, time_loc, time, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
 				Raylib.DrawRectangle(0, 0, screen_width, screen_height, Color.BLACK);
 				Raylib.EndShaderMode();
 
@@ -65,7 +66,6 @@ namespace RayWeb
 				webview.Render();
 
 				Raylib.DrawFPS(32, 32);
-
 				Raylib.EndDrawing();
 			}
 
